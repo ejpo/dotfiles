@@ -8,6 +8,14 @@ case $- in
       *) return;;
 esac
 
+#User Defaults
+export EDITOR=$(which vim)
+export GUI_EDITOR=$(which emacs)
+export BROWSER=$(which google-chrome)
+
+#Cya L8r Microsoft
+export DOTNET_CLI_TELEMETRY_OPTOUT=1
+
 # don't put duplicate lines or lines starting with space in the history.
 # See bash(1) for more options
 HISTCONTROL=ignoreboth
