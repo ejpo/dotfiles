@@ -30,13 +30,16 @@ values."
    dotspacemacs-configuration-layer-path '()
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
-   '(lua
+   '(
+     notmuch
+     lua
      javascript
      neotree
      dotnet
      csharp
      go
      pdf
+     java
      ;; ----------------------------------------------------------------
      ;; Example of useful layers you may want to use right away.
      ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
@@ -66,7 +69,8 @@ values."
    ;; A list of packages that will not be installed and loaded.
    dotspacemacs-excluded-packages
    '(
-      ;; org-projectile
+     ;; org-projectile
+     company-tern ;; Excluded as added in error by upstream PR
     )
    ;; Defines the behaviour of Spacemacs when installing packages.
    ;; Possible values are `used-only', `used-but-keep-unused' and `all'.
@@ -326,6 +330,85 @@ layers configuration.
 This is the place where most of your configurations should be done. Unless it is
 explicitly specified that a variable should be set before a package is loaded,
 you should place your code here."
+
+  ;; Major mode hooks
+  ;; (add-hook csharp-mode-hook 'dotnet-mode)
+
+  ;; Org-Mode
+  (setq org-use-fast-todo-selection t)
+
+  ;; TODO Keywords
+  (setq org-todo-keywords
+        (quote ((sequence "TODO(t)" "IN_PROGRESS(i)" "|" "DONE(d)")
+                (sequence "WAITING(w@/)" "HOLD(h@/)" "|" "CANCELLED(c@/)"))))
+
+  ;; Avoid setting entries as DONE when there are still sub-entries that are not
+  ;; DONE.
+  (setq org-enforce-todo-dependencies t)
+
+  ;; I picked up this neat trick from the Venerable Sacha Chua
+  (defvar my/org-meeting-template "** Meeting about %^{something}
+SCHEDULED: %<%Y-%m-%d %H:%M>
+*Attendees:*
+- [X] Ethan O'Donnell
+- [ ] %?
+*Agenda:*
+-
+-
+*Notes:*
+" "Meeting Template")
+
+
+  ;; Configure custom capture templates
+  (setq org-capture-templates
+        `(;; Note the backtick here, it's required so that the defvar based tempaltes will work!
+          ;;http://comments.gmane.org/gmane.emacs.orgmode/106890
+
+          ("t" "To-do" entry (file+headline "~/org/main.org" "Tasks")
+           "** TODO %^{Task Description}\nCreated From: %a\n" :clock-in t :clock-resume t :prepend t)
+          ("s" "Saucy To-do" entry (file+headline "~/org/SaucyBot.org" "Tasks")
+           "** TODO %^{Task Description}\nCreated From: %a\n DEADLINE:%^t" :clock-in t :clock-resume t :prepend t)
+          ("m" "Meeting" entry (file+headline "~/org/meetings/general.org" "Meeting Notes")
+           ,my/org-meeting-template)
+          ))
+
+  ;; Resolve open-clocks if idle more than 30 minutes
+  (setq org-clock-idle-time 30)
+
+  ;; Link abbreviations http://orgmode.org/manual/Link-abbreviations.html#Link-abbreviations
+  ;; This makes it easy to create links in org files to common urls
+  ;; Note: The actual link is not stored in the text, only when rendered
+  ;; Usage: [[zendesk:2753]] or [[redmine:7481][My text]]
+  (setq org-link-abbrev-alist
+        '(("zendesk" . "https://cfengine.zendesk.com/agent/tickets/")
+          ("redmine" . "https://dev.cfengine.com/issues/")
+          ("jira" . "https://tracker.mender.io/browse/")))
+
+  ;; Enable automatic inline image rendering
+  ;; http://orgmode.org/manual/In_002dbuffer-settings.html
+  (setq org-startup-with-inline-images t)
+
+  ;; Proper indentation for org files
+  (setq org-startup-indented t)
+
+  ;; This makes sure that each captured entry gets a unique ID
+  (add-hook 'org-capture-prepare-finalize-hook 'org-id-get-create)
+
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '(
+     (shell . t)
+     ))
+
+  ;; AUTOMATICLALLY CREATE IDS for all nodes in org mode file on save. This
+  ;; helps when you use link to an entry and then it is moved to a different
+  ;; file.
+  (add-hook 'org-mode-hook
+            (lambda ()
+              (add-hook 'before-save-hook 'my/org-add-ids-to-headlines-in-file nil 'local)))
+
+  (require 'ox-md)
+
   )
 
 ;; Do not write anything past this comment. This is where Emacs will
@@ -358,10 +441,11 @@ This function is called at the very end of Spacemacs initialization."
  '(evil-want-Y-yank-to-eol nil)
  '(org-agenda-files
    (quote
-    ("~/Org/SaucyBot.org" "~/Org/uni/co545-functional.org")))
+    ("~/org/SaucyBot.org" "~/org/uni/co545-functional.org")))
  '(package-selected-packages
    (quote
-    (pdf-tools tablist omnisharp csharp-mode xterm-color unfill smeargle shell-pop orgit org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download mwim multi-term mmm-mode markdown-toc markdown-mode magit-gitflow magit-popup htmlize helm-gitignore helm-company helm-c-yasnippet gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gh-md fuzzy flyspell-correct-helm flyspell-correct flycheck-pos-tip pos-tip flycheck evil-magit magit git-commit with-editor transient eshell-z eshell-prompt-extras esh-help diff-hl company-statistics company-go company auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete go-guru go-eldoc go-mode spinner evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-mc evil-matchit evil-lisp-state evil-indent-plus evil-iedit-state iedit evil-exchange evil-ediff evil-args evil-anzu anzu evil undo-tree adaptive-wrap ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline smartparens restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-unimpaired evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-escape goto-chg eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))))
+    (tern omnisharp csharp-mode xterm-color unfill smeargle shell-pop orgit org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download mwim multi-term mmm-mode markdown-toc markdown-mode magit-gitflow magit-popup htmlize helm-gitignore helm-company helm-c-yasnippet gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gh-md fuzzy flyspell-correct-helm flyspell-correct flycheck-pos-tip pos-tip flycheck evil-magit magit git-commit with-editor transient eshell-z eshell-prompt-extras esh-help diff-hl company-statistics company-go company auto-yasnippet yasnippet auto-dictionary ac-ispell auto-complete go-guru go-eldoc go-mode spinner evil-visualstar evil-visual-mark-mode evil-tutor evil-surround evil-mc evil-matchit evil-lisp-state evil-indent-plus evil-iedit-state iedit evil-exchange evil-ediff evil-args evil-anzu anzu evil undo-tree adaptive-wrap ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline smartparens restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-unimpaired evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-escape goto-chg eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent ace-window ace-link ace-jump-helm-line helm avy helm-core popup async)))
+ '(send-mail-function (quote sendmail-send-it)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
